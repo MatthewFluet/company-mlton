@@ -214,7 +214,7 @@ Otherwise, return 'nil."
           "\\(" company-mlton--sml-long-id-re "\\)"
           " *[:=][ \n]"))
 (defconst company-mlton-basis--entry-location-re
-  "[ ]+(\\* @ \\(.*\\) \\([0-9]+\\).\\([0-9]+\\)-\\([0-9]+\\).\\([0-9]+\\) \\*)$")
+  "[ ]+(\\* @ \\([^ ]*\\) \\(~?[0-9]+\\).\\(:?~?[0-9]+\\)\\(:?-\\(:?[0-9]+\\).\\(:?[0-9]+\\)\\)? \\*)$")
 
 (defun company-mlton-basis--load-candidates-from-file (file)
   (when (file-readable-p file)
