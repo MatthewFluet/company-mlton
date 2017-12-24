@@ -31,27 +31,20 @@
 (require 'cl-lib)
 (require 'dash)
 
+(defconst company-mlton--base
+  (file-name-directory load-file-name))
+
+;; company-mlton customization
+
 (defgroup company-mlton nil
   "Completion backend for MLton/SML."
   :group 'company)
 
-(defvar company-mlton-modes '(sml-mode)
-  "Major modes in which company-mlton may complete.")
+(defcustom company-mlton-modes '(sml-mode)
+  "Major modes in which company-mlton may complete."
+  :group 'company-mlton)
 
-(defconst company-mlton-keyword--sml-keywords-core
-  '("abstype" "and" "andalso" "as" "case" "datatype" "do" "else"
-    "end" "exception" "fn" "fun" "handle" "if" "in" "infix"
-    "infixr" "let" "local" "nonfix" "of" "op" "open" "orelse"
-    "raise" "rec" "then" "type" "val" "with" "withtype" "while"))
-(defconst company-mlton-keyword--sml-keywords-modules
-  '("eqtype" "functor" "include" "sharing" "sig"
-    "signature" "struct" "structure" "where"))
-(defconst company-mlton-keyword--sml-keywords
-  (sort (append company-mlton-keyword--sml-keywords-core
-                company-mlton-keyword--sml-keywords-modules)
-        'string<))
-
-(defvar-local company-mlton-basis--ids 'nil)
+;; company-mlton regexps
 
 (defun company-mlton--rev-rx (rx)
   (pcase rx
@@ -102,6 +95,9 @@
             (* (: "," " " ,company-mlton--sml-tyvar-id-rx)) ")"))))
 (defconst company-mlton--sml-tyvars-re
   (rx-to-string company-mlton--sml-tyvars-rx))
+
+;; company-mlton utils
+
 
 
 ;; Robustly match SML long identifier prefixes.
@@ -159,6 +155,42 @@ Otherwise, return 'nil."
             prefix
           'stop)))))
 
+;; company-mlton-keyword
+
+(defconst company-mlton-keyword--sml-keywords-core
+  '("abstype" "and" "andalso" "as" "case" "datatype" "do" "else"
+    "end" "exception" "fn" "fun" "handle" "if" "in" "infix"
+    "infixr" "let" "local" "nonfix" "of" "op" "open" "orelse"
+    "raise" "rec" "then" "type" "val" "with" "withtype" "while"))
+(defconst company-mlton-keyword--sml-keywords-modules
+  '("eqtype" "functor" "include" "sharing" "sig"
+    "signature" "struct" "structure" "where"))
+(defconst company-mlton-keyword--sml-keywords
+  (sort (append company-mlton-keyword--sml-keywords-core
+                company-mlton-keyword--sml-keywords-modules)
+        'string<))
+
+;;;###autoload
+(defun company-mlton-keyword (command &optional arg &rest ignored)
+  (interactive (list 'interactive))
+  (cl-case command
+    (interactive (company-begin-backend 'company-mlton-keyword))
+    (prefix (and (memq major-mode company-mlton-modes)
+                 (not (company-in-string-or-comment))
+                 (or (company-mlton--prefix) 'stop)))
+    (candidates (all-completions arg company-mlton-keyword--sml-keywords))
+    (annotation "kw")
+    (sorted 't)
+    ))
+
+;; company-mlton-basis
+
+(defconst company-mlton-basis--file-default
+  (expand-file-name "mlton-default.basis" company-mlton--base))
+
+(defvar-local company-mlton-basis--file
+  company-mlton-basis--file-default)
+
 (defconst company-mlton-basis--entry-annot-id-re
   (concat "^"
           "\\("
@@ -184,50 +216,42 @@ Otherwise, return 'nil."
 (defconst company-mlton-basis--entry-location-re
   "[ ]+(\\* @ \\(.*\\) \\([0-9]+\\).\\([0-9]+\\)-\\([0-9]+\\).\\([0-9]+\\) \\*)$")
 
-(defun company-mlton-basis--load-ids-from-file (file)
-  (setq-local
-   company-mlton-basis--ids
-   (with-temp-buffer
-     (insert-file-contents file)
-     (goto-char (point-min))
-     (let* ((ids nil))
-       (while (re-search-forward company-mlton-basis--entry-annot-id-re nil t)
-         (let* ((meta-start (match-beginning 0))
-                (annotation (pcase (substring (match-string 1) 0 3)
-                              ("dat" "typ")
-                              ("fun" "fct")
-                              (ann ann)))
-                (id (match-string 2)))
-           (re-search-forward company-mlton-basis--entry-location-re nil t)
-           (let* ((meta-end (match-beginning 0))
-                  (meta (replace-regexp-in-string "[ \n]+$" " " (buffer-substring meta-start meta-end)))
-                  (file (match-string 1))
-                  (line (string-to-number (match-string 2)))
-                  (location (cons file line)))
-             (setq ids
-                   (cons (propertize id
-                                     'annotation annotation
-                                     'meta meta
-                                     'location location)
-                         ids)))))
-       ids))))
+(defun company-mlton-basis--load-candidates-from-file (file)
+  (when (file-readable-p file)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let* ((ids nil))
+        (while (re-search-forward company-mlton-basis--entry-annot-id-re nil t)
+          (let* ((meta-start (match-beginning 0))
+                 (annotation (pcase (substring (match-string 1) 0 3)
+                               ("dat" "typ")
+                               ("fun" "fct")
+                               (ann ann)))
+                 (id (match-string 2)))
+            (re-search-forward company-mlton-basis--entry-location-re nil t)
+            (let* ((meta-end (match-beginning 0))
+                   (meta (replace-regexp-in-string "[ \n]+$" " " (buffer-substring meta-start meta-end)))
+                   (file (match-string 1))
+                   (line (string-to-number (match-string 2)))
+                   (location (cons file line)))
+              (setq ids
+                    (cons (propertize id
+                                      'annotation annotation
+                                      'meta meta
+                                      'location location)
+                          ids)))))
+        ids))))
+
+(defvar-local company-mlton-basis--candidates
+  (company-mlton-basis--load-candidates-from-file company-mlton-basis--file))
 
 (defun company-mlton-basis-load ()
   (interactive)
-  (company-mlton-basis--load-ids-from-file (read-file-name "Specify basis file: " nil nil t nil nil)))
-
-;;;###autoload
-(defun company-mlton-keyword (command &optional arg &rest ignored)
-  (interactive (list 'interactive))
-  (cl-case command
-    (interactive (company-begin-backend 'company-mlton-keyword))
-    (prefix (and (memq major-mode company-mlton-modes)
-                 (not (company-in-string-or-comment))
-                 (or (company-mlton--prefix) 'stop)))
-    (candidates (all-completions arg company-mlton-keyword--sml-keywords))
-    (annotation "kw")
-    (sorted 't)
-    ))
+  (-when-let (file (read-file-name "Basis file: " nil nil t nil nil))
+    (setq-local company-mlton-basis--file file)
+    (setq-local company-mlton-basis--candidates
+                (company-mlton-basis--load-candidates-from-file file))))
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
@@ -235,10 +259,10 @@ Otherwise, return 'nil."
   (cl-case command
     (interactive (company-begin-backend 'company-mlton-basis))
     (prefix (and (memq major-mode company-mlton-modes)
-                 company-mlton-basis--ids
+                 company-mlton-basis--candidates
                  (not (company-in-string-or-comment))
                  (or (company-mlton--prefix) 'stop)))
-    (candidates (all-completions arg company-mlton-basis--ids))
+    (candidates (all-completions arg company-mlton-basis--candidates))
     (annotation (get-text-property 0 'annotation arg))
     (meta (let ((meta (get-text-property 0 'meta arg)))
             (if company-echo-truncate-lines
@@ -248,6 +272,8 @@ Otherwise, return 'nil."
                 (when (file-readable-p (car file_line))
                   file_line)))
     ))
+
+;; company-mlton-init
 
 ;;;###autoload
 (defun company-mlton-init ()
