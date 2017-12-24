@@ -244,7 +244,9 @@ Otherwise, return 'nil."
             (if company-echo-truncate-lines
                 (replace-regexp-in-string "[ \n]+" " " meta)
               meta)))
-    (location (get-text-property 0 'location arg))
+    (location (-when-let (file_line (get-text-property 0 'location arg))
+                (when (file-readable-p (car file_line))
+                  file_line)))
     ))
 
 ;;;###autoload
