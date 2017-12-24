@@ -29,6 +29,7 @@
 
 (require 'company)
 (require 'cl-lib)
+(require 'dash)
 
 (defgroup company-mlton nil
   "Completion backend for MLton/SML."
@@ -52,39 +53,111 @@
 
 (defvar-local company-mlton-basis--ids 'nil)
 
-(defconst company-mlton--sml-alphanum-re
-  "\\(?:[A-Za-z0-9'_]\\)")
-(defconst company-mlton--sml-alphanum-id-re
-  (concat "\\(?:"
-          "[A-Za-z]" company-mlton--sml-alphanum-re "*"
-          "\\)"))
-(defconst company-mlton--sml-sym-re
-  "\\(?:[!%&$#+-/:<=>?@\\~`^|*]\\)")
-(defconst company-mlton--sml-sym-id-re
-  (concat "\\(?:"
-          company-mlton--sml-sym-re "+"
-          "\\)"))
-(defconst company-mlton--sml-long-id-re
-  (concat "\\(?:"
-          "\\(?:" company-mlton--sml-alphanum-id-re "[.]" "\\)*"
-          "\\(?:" company-mlton--sml-alphanum-id-re "\\|" company-mlton--sml-sym-id-re "\\)"
-          "\\)"))
-(defconst company-mlton--sml-tyvar-id-re
-  (concat "\\(?:"
-          "'" company-mlton--sml-alphanum-re "*"
-          "\\)"))
-(defconst company-mlton--sml-tyvars-re
-  (concat "\\(?:"
-          " *" company-mlton--sml-tyvar-id-re
-          "\\|"
-          " *" "(" " *" company-mlton--sml-tyvar-id-re "\\(?:" " *" "," " *" company-mlton--sml-tyvar-id-re "\\)*" " *" ")"
-          "\\)?"))
+(defun company-mlton--rev-rx (rx)
+  (pcase rx
+    ((pred stringp) rx)
+    ((pred characterp) rx)
+    (`(char . ,rest) rx)
+    (`(: . ,rest) (cons `: (reverse (-map #'company-mlton--rev-rx rest))))
+    (`(| . ,rest) (cons `| (-map #'company-mlton--rev-rx rest)))
+    (`(* . ,rest) (cons `* (-map #'company-mlton--rev-rx rest)))
+    (`(+ . ,rest) (cons `* (-map #'company-mlton--rev-rx rest)))
+    (`(? . ,rest) (cons `? (-map #'company-mlton--rev-rx rest)))))
 
+(defconst company-mlton--sml-alphanum-rx
+  `(char "A-Z" "a-z" "0-9" "'" "_"))
+(defconst company-mlton--sml-alphanum-id-rx
+  `(: (char "A-Z" "a-z") (* ,company-mlton--sml-alphanum-rx)))
+(defconst company-mlton--sml-sym-rx
+  `(char "!" "%" "&" "$" "#" "+" "-"
+         "/" ":" "<" "=" ">" "?" "@"
+         "\\" "~" "`" "^" "|" "*"))
+(defconst company-mlton--sml-sym-id-rx
+  `(+ ,company-mlton--sml-sym-rx))
+(defconst company-mlton--sml-long-id-rx
+  `(: (* (: ,company-mlton--sml-alphanum-id-rx "."))
+      (| ,company-mlton--sml-alphanum-id-rx
+         ,company-mlton--sml-sym-id-rx)))
+(defconst company-mlton--sml-long-id-re
+  (rx-to-string company-mlton--sml-long-id-rx))
+(defconst company-mlton--prefix-sml-long-id-rx
+  `(: (* (: ,company-mlton--sml-alphanum-id-rx "."))
+      (| (: ,company-mlton--sml-alphanum-id-rx ".")
+         ,company-mlton--sml-alphanum-id-rx
+         ,company-mlton--sml-sym-id-rx)))
+(defconst company-mlton--prefix-sml-long-id-at-start-rx
+  `(: string-start ,company-mlton--prefix-sml-long-id-rx))
+(defconst company-mlton--prefix-sml-long-id-at-start-re
+  (rx-to-string company-mlton--prefix-sml-long-id-at-start-rx))
+(defconst company-mlton--rev-prefix-sml-long-id-at-start-rx
+  `(: string-start ,(company-mlton--rev-rx company-mlton--prefix-sml-long-id-rx)))
+(defconst company-mlton--rev-prefix-sml-long-id-at-start-re
+  (rx-to-string company-mlton--rev-prefix-sml-long-id-at-start-rx))
+
+(defconst company-mlton--sml-tyvar-id-rx
+  `(: "'" (* ,company-mlton--sml-alphanum-rx)))
+(defconst company-mlton--sml-tyvars-rx
+  `(? (| (: ,company-mlton--sml-tyvar-id-rx)
+         (: "(" ,company-mlton--sml-tyvar-id-rx 
+            (* (: "," " " ,company-mlton--sml-tyvar-id-rx)) ")"))))
+(defconst company-mlton--sml-tyvars-re
+  (rx-to-string company-mlton--sml-tyvars-rx))
+
+
+;; Robustly match SML long identifier prefixes.
+;;
+;; Many company backends use `company-grab-symbol` or
+;; `company-grab-word`.  These functions rely on robust syntax tables
+;; for symbol and word boundaries.  However, old versions of sml-mode
+;; (e.g., the modified sml-mode-3.3 that I (Matthew Fluet) use) have
+;; poor syntax tables and neither `company-grab-symbol` nor
+;; `company-grab-word` return a prefix that includes "." (i.e., a
+;; proper long identifier).  Recent versions of sml-mode (e.g., Stefan
+;; Monnier's sml-mode-6.8 via elpa) have better syntax tables, and
+;; `company-grab-symbol` works for alphanumeric long identifiers, but
+;; not for symbolic long identifiers (e.g., "Int.<=").
+;;
+;; Consider the line "1+IntInf.di" with the point at the end.
+;; `company-mlton--prefix` should return "IntInf.di".
+;; `(re-search-backward prefix-sml-long-id-re)` would only match "i".
+;; `(looking-back prefix-sml-long-id-re)` would also only match "i";
+;; moreover, `(looking-back prefix-sml-long-id-re nil t)` would only
+;; match "di", because ".di" does not match `prefix-sml-long-id-re`.
+;; Skipping backward through alphanumeric and symbolic and "."
+;; characters would return "+IntInf.di".  We can match "IntInf.di" by
+;; taking the longest match of `rev-prefix-sml-long-id-re` in the
+;; reversed string "id.fnItnI+1".  Having found the beginning of the
+;; long identifier that includes the point, we take the longest match
+;; of `prefix-sml-long-id-re`.  If this match ends at the point, then
+;; the point is at the end of a prefix of an SML long identifier; if
+;; this match ends after the point, then the point is in the middle of
+;; a prefix of an SML long identifier.
+;;
+;; Unfortunately, there does not appear to be a way to regex search
+;; through the buffer in reverse (i.e., search for a regex match in
+;; the sequence of characters backwards from the point).  We
+;; explicitly construct the reversed prefix of the current line (which
+;; suffices for finding a prefix of an SML long identifier), take the
+;; longest match of `rev-prefix-sml-long-id-at-start-re`, explicitly
+;; construct the matched prefix with the suffix of the current line,
+;; and compare the length of the longest match of
+;; `prefix-sml-long-id-at-start-re`.
 (defun company-mlton--prefix ()
-  (buffer-substring (point)
-                    (save-excursion
-                      (skip-chars-backward "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!%&$#+-/:<=>?@\\~`^|*.")
-                      (point))))
+  "If point is at the end of a prefix of an SML long identifier, return it.
+If point is in the middle of a prefix of an SML long identifier, return 'stop.
+Otherwise, return 'nil."
+  (let ((rev-pre-line (reverse (buffer-substring (point-at-bol) (point)))))
+    (when (string-match
+           company-mlton--rev-prefix-sml-long-id-at-start-re
+           rev-pre-line)
+      (let ((prefix (reverse (match-string 0 rev-pre-line))))
+        ;; match must succeed
+        (string-match
+         company-mlton--prefix-sml-long-id-at-start-re
+         (concat prefix (buffer-substring (point) (point-at-eol))))
+        (if (= (length prefix) (match-end 0))
+            prefix
+          'stop)))))
 
 (defconst company-mlton-basis--entry-annot-id-re
   (concat "^"
