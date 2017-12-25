@@ -90,15 +90,13 @@
 (defconst company-mlton--sml-tyvar-id-rx
   `(: "'" (* ,company-mlton--sml-alphanum-rx)))
 (defconst company-mlton--sml-tyvars-rx
-  `(? (| (: ,company-mlton--sml-tyvar-id-rx)
-         (: "(" ,company-mlton--sml-tyvar-id-rx 
-            (* (: "," " " ,company-mlton--sml-tyvar-id-rx)) ")"))))
+  `(? (: " " (| ,company-mlton--sml-tyvar-id-rx
+                (: "(" ,company-mlton--sml-tyvar-id-rx
+                   (* (: "," " " ,company-mlton--sml-tyvar-id-rx)) ")")))))
 (defconst company-mlton--sml-tyvars-re
   (rx-to-string company-mlton--sml-tyvars-rx))
 
 ;; company-mlton utils
-
-
 
 ;; Robustly match SML long identifier prefixes.
 ;;
@@ -191,56 +189,53 @@ Otherwise, return 'nil."
 (defvar-local company-mlton-basis--file
   company-mlton-basis--file-default)
 
-(defconst company-mlton-basis--entry-annot-id-re
-  (concat "^"
-          "\\("
-          "type" company-mlton--sml-tyvars-re
-          "\\|"
-          "datatype" company-mlton--sml-tyvars-re
-          "\\|"
-          "con"
-          "\\|"
-          "exn"
-          "\\|"
-          "val"
-          "\\|"
-          "signature"
-          "\\|"
-          "structure"
-          "\\|"
-          "functor"
-          "\\)"
-          " +"
-          "\\(" company-mlton--sml-long-id-re "\\)"
-          " *[:=][ \n]"))
-(defconst company-mlton-basis--entry-location-re
-  "[ ]+(\\* @ \\([^ ]*\\) \\(~?[0-9]+\\).\\(:?~?[0-9]+\\)\\(:?-\\(:?[0-9]+\\).\\(:?[0-9]+\\)\\)? \\*)$")
+(defconst company-mlton-basis--entry-rx
+  `(: line-start
+      (| (: (group-n 2 (| "type" "datatype")) ,company-mlton--sml-tyvars-rx
+            " " (group-n 1 ,company-mlton--sml-long-id-rx))
+         (: (group-n 2 (| "con" "exn" "val" "signature" "structure" "functor"))
+            " " (group-n 1 ,company-mlton--sml-long-id-rx)))
+      (* not-newline) "\n"
+      (* " " (* not-newline) "\n")))
+(defconst company-mlton-basis--entry-re
+  (rx-to-string company-mlton-basis--entry-rx))
+(defconst company-mlton-basis--entry-def-rx
+  `(: "(* @ "
+      (group-n 1 (* (not (any " "))))
+      " "
+      (group-n 2 (+ digit)) "." (+ digit)
+      (? (: "-" (+ digit) "." (+ digit)))
+      " *)"))
+(defconst company-mlton-basis--entry-def-re
+  (rx-to-string company-mlton-basis--entry-def-rx))
 
 (defun company-mlton-basis--load-candidates-from-file (file)
   (when (file-readable-p file)
     (with-temp-buffer
       (insert-file-contents file)
       (goto-char (point-min))
-      (let* ((ids nil))
-        (while (re-search-forward company-mlton-basis--entry-annot-id-re nil t)
-          (let* ((meta-start (match-beginning 0))
-                 (annotation (pcase (substring (match-string 1) 0 3)
+      (let ((ids nil))
+        (while (re-search-forward company-mlton-basis--entry-re nil t)
+          (let* ((entry (match-string 0))
+                 (id (match-string 1))
+                 (kw (match-string 2))
+                 (annotation (pcase (substring kw 0 3)
                                ("dat" "typ")
                                ("fun" "fct")
                                (ann ann)))
-                 (id (match-string 2)))
-            (re-search-forward company-mlton-basis--entry-location-re nil t)
-            (let* ((meta-end (match-beginning 0))
-                   (meta (replace-regexp-in-string "[ \n]+$" " " (buffer-substring meta-start meta-end)))
-                   (file (match-string 1))
-                   (line (string-to-number (match-string 2)))
-                   (location (cons file line)))
-              (setq ids
-                    (cons (propertize id
-                                      'annotation annotation
-                                      'meta meta
-                                      'location location)
-                          ids)))))
+                 (meta (replace-regexp-in-string
+                        "[ \n]+\\'" ""
+                        (replace-regexp-in-string
+                         "(\\* @.*\\*)" ""
+                         entry)))
+                 (location (when (string-match company-mlton-basis--entry-def-re entry)
+                             (cons (match-string 1 entry)
+                                   (string-to-number (match-string 2 entry))))))
+              (push (propertize id
+                                'annotation annotation
+                                'meta meta
+                                'location location)
+                    ids)))
         ids))))
 
 (defvar-local company-mlton-basis--candidates
