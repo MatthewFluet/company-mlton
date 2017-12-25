@@ -209,7 +209,7 @@ Otherwise, return 'nil."
 (defconst company-mlton-basis--entry-def-re
   (rx-to-string company-mlton-basis--entry-def-rx))
 
-(defun company-mlton-basis--load-candidates-from-file (file)
+(defun company-mlton-basis--load-ids-from-file (file)
   (when (file-readable-p file)
     (with-temp-buffer
       (insert-file-contents file)
@@ -238,15 +238,18 @@ Otherwise, return 'nil."
                     ids)))
         ids))))
 
-(defvar-local company-mlton-basis--candidates
-  (company-mlton-basis--load-candidates-from-file company-mlton-basis--file))
+(defvar-local company-mlton-basis--ids
+  (company-mlton-basis--load-ids-from-file company-mlton-basis--file))
+
+(defun company-mlton-basis--fetch-ids ()
+    company-mlton-basis--ids)
 
 (defun company-mlton-basis-load ()
   (interactive)
   (-when-let (file (read-file-name "Basis file: " nil nil t nil nil))
     (setq-local company-mlton-basis--file file)
-    (setq-local company-mlton-basis--candidates
-                (company-mlton-basis--load-candidates-from-file file))))
+    (setq-local company-mlton-basis--ids
+                (company-mlton-basis--load-ids-from-file file))))
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
@@ -254,10 +257,10 @@ Otherwise, return 'nil."
   (cl-case command
     (interactive (company-begin-backend 'company-mlton-basis))
     (prefix (and (memq major-mode company-mlton-modes)
-                 company-mlton-basis--candidates
+                 company-mlton-basis--file
                  (not (company-in-string-or-comment))
                  (or (company-mlton--prefix) 'stop)))
-    (candidates (all-completions arg company-mlton-basis--candidates))
+    (candidates (all-completions arg (company-mlton-basis--fetch-ids)))
     (annotation (get-text-property 0 'annotation arg))
     (meta (let ((meta (get-text-property 0 'meta arg)))
             (if company-echo-truncate-lines
