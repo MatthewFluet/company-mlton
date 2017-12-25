@@ -210,33 +210,32 @@ Otherwise, return 'nil."
   (rx-to-string company-mlton-basis--entry-def-rx))
 
 (defun company-mlton-basis--load-ids-from-file (file)
-  (when (file-readable-p file)
-    (with-temp-buffer
-      (insert-file-contents file)
-      (goto-char (point-min))
-      (let ((ids nil))
-        (while (re-search-forward company-mlton-basis--entry-re nil t)
-          (let* ((entry (match-string 0))
-                 (id (match-string 1))
-                 (kw (match-string 2))
-                 (annotation (pcase (substring kw 0 3)
-                               ("dat" "typ")
-                               ("fun" "fct")
-                               (ann ann)))
-                 (meta (replace-regexp-in-string
-                        "[ \n]+\\'" ""
-                        (replace-regexp-in-string
-                         "(\\* @.*\\*)" ""
-                         entry)))
-                 (location (when (string-match company-mlton-basis--entry-def-re entry)
-                             (cons (match-string 1 entry)
-                                   (string-to-number (match-string 2 entry))))))
-              (push (propertize id
-                                'annotation annotation
-                                'meta meta
-                                'location location)
-                    ids)))
-        ids))))
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (let ((ids nil))
+      (while (re-search-forward company-mlton-basis--entry-re nil t)
+        (let* ((entry (match-string 0))
+               (id (match-string 1))
+               (kw (match-string 2))
+               (annotation (pcase (substring kw 0 3)
+                             ("dat" "typ")
+                             ("fun" "fct")
+                             (ann ann)))
+               (meta (replace-regexp-in-string
+                      "[ \n]+\\'" ""
+                      (replace-regexp-in-string
+                       "(\\* @.*\\*)" ""
+                       entry)))
+               (location (when (string-match company-mlton-basis--entry-def-re entry)
+                           (cons (match-string 1 entry)
+                                 (string-to-number (match-string 2 entry))))))
+          (push (propertize id
+                            'annotation annotation
+                            'meta meta
+                            'location location)
+                ids)))
+      ids)))
 
 (defvar-local company-mlton-basis--ids
   (company-mlton-basis--load-ids-from-file company-mlton-basis--file))
@@ -246,10 +245,19 @@ Otherwise, return 'nil."
 
 (defun company-mlton-basis-load ()
   (interactive)
-  (-when-let (file (read-file-name "Basis file: " nil nil t nil nil))
-    (setq-local company-mlton-basis--file file)
-    (setq-local company-mlton-basis--ids
-                (company-mlton-basis--load-ids-from-file file))))
+  (let (file (read-file-name "Basis file: " nil nil t nil nil))
+    (if (not (file-readable-p file))
+        (progn
+          (message "company-mlton could not read file \"%s\"" file)
+          nil)
+      (let ((ids (company-mlton-basis--load-ids-from-file file)))
+        (if (null ids)
+            (progn
+              (message "company-mlton found no identifiers in file \"%s\"" file)
+              nil)
+          (progn
+            (setq-local company-mlton-basis--file file)
+            (setq-local company-mlton-basis--ids ids)))))))
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
