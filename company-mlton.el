@@ -189,6 +189,8 @@ Otherwise, return 'nil."
 (defvar-local company-mlton-basis--file
   company-mlton-basis--file-default)
 
+(defvar-local company-mlton-basis--ids nil)
+
 (defconst company-mlton-basis--entry-rx
   `(: line-start
       (| (: (group-n 2 (| "type" "datatype")) ,company-mlton--sml-tyvars-rx
@@ -210,6 +212,7 @@ Otherwise, return 'nil."
   (rx-to-string company-mlton-basis--entry-def-rx))
 
 (defun company-mlton-basis--load-ids-from-file (file)
+  (message "company-mlton loading file \"%s\"" file)
   (with-temp-buffer
     (insert-file-contents file)
     (goto-char (point-min))
@@ -237,27 +240,36 @@ Otherwise, return 'nil."
                 ids)))
       ids)))
 
-(defvar-local company-mlton-basis--ids
-  (company-mlton-basis--load-ids-from-file company-mlton-basis--file))
+(defun company-mlton-basis--nil-file-ids ()
+  (setq-local company-mlton-basis--file nil)
+  (setq-local company-mlton-basis--ids nil)
+  nil)
 
-(defun company-mlton-basis--fetch-ids ()
-    company-mlton-basis--ids)
-
-(defun company-mlton-basis-load ()
-  (interactive)
-  (let (file (read-file-name "Basis file: " nil nil t nil nil))
+(defun company-mlton-basis--update-file-ids ()
+  (-when-let (file company-mlton-basis--file)
     (if (not (file-readable-p file))
         (progn
           (message "company-mlton could not read file \"%s\"" file)
-          nil)
+          (company-mlton-basis--nil-file-ids))
       (let ((ids (company-mlton-basis--load-ids-from-file file)))
         (if (null ids)
             (progn
               (message "company-mlton found no identifiers in file \"%s\"" file)
-              nil)
+              (company-mlton-basis--nil-file-ids))
           (progn
-            (setq-local company-mlton-basis--file file)
-            (setq-local company-mlton-basis--ids ids)))))))
+            (setq-local company-mlton-basis--ids ids)
+            nil))))))
+
+(defun company-mlton-basis--fetch-ids ()
+  (when (not company-mlton-basis--ids)
+    (company-mlton-basis--update-file-ids))
+  company-mlton-basis--ids)
+
+(defun company-mlton-basis-load ()
+  (interactive)
+  (let ((file (read-file-name "Basis file: " nil nil t nil nil)))
+    (setq-local company-mlton-basis--file file)
+    (company-mlton-basis--update-file-ids)))
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
