@@ -265,7 +265,14 @@ Otherwise, return 'nil."
     (meta (let ((meta (get-text-property 0 'meta arg)))
             (if company-echo-truncate-lines
                 (replace-regexp-in-string "[ \n]+" " " meta)
-              meta)))
+              (let ((metas (split-string meta "\n"))
+                    (max-lines (if (integerp max-mini-window-height)
+                                   max-mini-window-height
+                                 (truncate (* max-mini-window-height
+                                              (frame-total-lines))))))
+                (if (<= (length metas) max-lines)
+                    meta
+                  (mapconcat #'identity (-take max-lines metas) "\n"))))))
     (location (-when-let (file_line (get-text-property 0 'location arg))
                 (when (file-readable-p (car file_line))
                   file_line)))
