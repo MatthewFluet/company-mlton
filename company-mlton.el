@@ -183,14 +183,6 @@ Otherwise, return 'nil."
 
 ;; company-mlton-basis
 
-(defconst company-mlton-basis--file-default
-  (expand-file-name "mlton-default.basis" company-mlton--base))
-
-(defvar-local company-mlton-basis--file
-  company-mlton-basis--file-default)
-
-(defvar-local company-mlton-basis--ids nil)
-
 (defconst company-mlton-basis--entry-rx
   `(: line-start
       (| (: (group-n 2 (| "type" "datatype")) ,company-mlton--sml-tyvars-rx
@@ -240,36 +232,48 @@ Otherwise, return 'nil."
                 ids)))
       ids)))
 
-(defun company-mlton-basis--nil-file-ids ()
-  (setq-local company-mlton-basis--file nil)
-  (setq-local company-mlton-basis--ids nil)
-  nil)
+(defconst company-mlton-basis--file-default
+  (expand-file-name "mlton-default.basis" company-mlton--base))
 
-(defun company-mlton-basis--update-file-ids ()
-  (-when-let (file company-mlton-basis--file)
-    (if (not (file-readable-p file))
-        (progn
-          (message "company-mlton could not read file \"%s\"" file)
-          (company-mlton-basis--nil-file-ids))
-      (let ((ids (company-mlton-basis--load-ids-from-file file)))
-        (if (null ids)
-            (progn
-              (message "company-mlton found no identifiers in file \"%s\"" file)
-              (company-mlton-basis--nil-file-ids))
-          (progn
-            (setq-local company-mlton-basis--ids ids)
-            nil))))))
+(defvar-local company-mlton-basis--file company-mlton-basis--file-default)
+
+(defvar company-mlton-basis--cache-hash-table
+  (make-hash-table :test 'equal :weakness 'value))
+
+(defvar-local company-mlton-basis--cache nil)
 
 (defun company-mlton-basis--fetch-ids ()
-  (when (not company-mlton-basis--ids)
-    (company-mlton-basis--update-file-ids))
-  company-mlton-basis--ids)
+  (-when-let (file company-mlton-basis--file)
+    (let* ((kfile (expand-file-name file))
+           (cache
+            (if (and company-mlton-basis--cache
+                     (string-equal (car company-mlton-basis--cache) kfile))
+                company-mlton-basis--cache
+              (or (gethash kfile company-mlton-basis--cache-hash-table)
+                  (let ((cache (cons kfile nil)))
+                    (setq-local company-mlton-basis--cache cache)
+                    (puthash kfile cache company-mlton-basis--cache-hash-table)
+                    cache)))))
+      (or (cdr cache)
+          (if (not (file-readable-p kfile))
+              (progn
+                (message "company-mlton could not read file \"%s\"" kfile)
+                nil)
+            (let ((ids (company-mlton-basis--load-ids-from-file kfile)))
+              (if (null ids)
+                  (progn
+                    (message "company-mlton found no identifiers in file \"%s\"" kfile)
+                    nil)
+                (progn
+                  (setcdr cache ids)
+                  ids))))))))
 
 (defun company-mlton-basis-load ()
   (interactive)
   (let ((file (read-file-name "Basis file: " nil nil t nil nil)))
     (setq-local company-mlton-basis--file file)
-    (company-mlton-basis--update-file-ids)))
+    (company-mlton-basis--fetch-ids)
+    nil))
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
