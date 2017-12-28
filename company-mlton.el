@@ -44,6 +44,11 @@
   "Major modes in which company-mlton may complete."
   :group 'company-mlton)
 
+(defcustom company-mlton-verbose t
+  "Whether to echo messages that are not errors."
+  :group 'company-mlton-basis
+  :type 'boolean)
+
 ;; company-mlton regexps
 
 (defun company-mlton--rev-rx (rx)
@@ -243,7 +248,8 @@ class (one of \"typ\", \"con\", \"exn\", \"val\", \"sig\",
 corresponds to the whole entry, excepting the definition
 location.  The location property of the string corresponds to the
 definition location of the identifier."
-  (message "company-mlton loading file \"%s\"" file)
+  (when company-mlton-verbose
+    (message "company-mlton loading file \"%s\"" file))
   (with-temp-buffer
     (insert-file-contents file)
     (goto-char (point-min))
