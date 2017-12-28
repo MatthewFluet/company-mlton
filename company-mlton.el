@@ -297,6 +297,9 @@ compiling a \".sml\" file).")
 (defvar-local company-mlton-basis--cache nil)
 
 (defun company-mlton-basis--fetch-ids ()
+  "Fetch identifiers from the basis file specified by
+`company-mlton-basis-file', using and updating cache as
+necessary."
   (-when-let (file company-mlton-basis-file)
     (let* ((kfile (expand-file-name file))
            (cache
@@ -304,23 +307,32 @@ compiling a \".sml\" file).")
                      (string-equal (car company-mlton-basis--cache) kfile))
                 company-mlton-basis--cache
               (or (gethash kfile company-mlton-basis--cache-hash-table)
-                  (let ((cache (cons kfile nil)))
+                  (let ((cache (list kfile 'not-loaded)))
                     (setq company-mlton-basis--cache cache)
                     (puthash kfile cache company-mlton-basis--cache-hash-table)
-                    cache)))))
-      (or (cdr cache)
-          (if (not (file-readable-p kfile))
-              (progn
-                (message "company-mlton could not read file \"%s\"" kfile)
-                nil)
-            (let ((ids (company-mlton-basis--load-ids-from-file kfile)))
-              (if (null ids)
+                    cache))))
+           (kfile-time (-if-let (attrs (file-attributes kfile)) (nth 5 attrs)))
+           (load-ids
+            (lambda (message-unreadable)
+              (if (not (file-readable-p kfile))
                   (progn
-                    (message "company-mlton found no identifiers in file \"%s\"" kfile)
+                    (when message-unreadable
+                      (message "company-mlton could not read file \"%s\""
+                               kfile))
+                    (setcdr cache (list 'not-readable))
                     nil)
-                (progn
-                  (setcdr cache ids)
-                  ids))))))))
+                (let ((ids (company-mlton-basis--load-ids-from-file kfile)))
+                  (when (null ids)
+                    (message "company-mlton found no identifiers in file \"%s\""
+                             kfile))
+                  (setcdr cache (list 'loaded kfile-time ids))
+                  ids)))))
+      (pcase (cadr cache)
+        ('not-loaded (funcall load-ids t))
+        ('not-readable (funcall load-ids nil))
+        ('loaded (if (time-less-p (caddr cache) kfile-time)
+                     (funcall load-ids t)
+                   (cadddr cache)))))))
 
 (defun company-mlton-basis-load (file)
   "Load a basis file FILE created by \"mlton\" using \"-show-basis <file>\"."
