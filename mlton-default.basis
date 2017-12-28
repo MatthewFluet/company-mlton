@@ -6271,7 +6271,7 @@ structure MLton.Rlimit.RLim:
       val castToSysWord: MLton.Rlimit.RLim.t -> LargeWord.word
    end
    (* @ $(SML_LIB)/basis/mlton/rlimit.sml 12.17-12.20 *)
-type MLton.Rlimit.RLim.t = MLton.Rlimit.RLim.t (* @ /home/mtf/devel/mlton/mlton.oxygen.git-wt/build/lib/mlton/targets/self/sml/c-types.sml 86.44-86.44 *)
+type MLton.Rlimit.RLim.t = MLton.Rlimit.RLim.t (* @ /home/matthew/devel/mlton/mlton.shadow.git-wt/build/lib/mlton/targets/self/sml/c-types.sml 86.44-86.44 *)
 val MLton.Rlimit.RLim.castFromSysWord: LargeWord.word -> MLton.Rlimit.RLim.t (* @ $(SML_LIB)/basis/integer/num1.sml 826.14-826.28 *)
 val MLton.Rlimit.RLim.castToSysWord: MLton.Rlimit.RLim.t -> LargeWord.word (* @ $(SML_LIB)/basis/integer/num1.sml 837.14-837.26 *)
 structure MLton.Rusage: MLTON_RUSAGE (* @ $(SML_LIB)/basis/mlton/mlton.sml 97.11-97.16 *)

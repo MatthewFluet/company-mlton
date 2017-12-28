@@ -31,7 +31,7 @@
 (require 'cl-lib)
 (require 'dash)
 
-(defconst company-mlton--base
+(defconst company-mlton--dir
   (file-name-directory load-file-name))
 
 ;; company-mlton customization
@@ -232,10 +232,15 @@ Otherwise, return 'nil."
                 ids)))
       ids)))
 
-(defconst company-mlton-basis--file-default
-  (expand-file-name "mlton-default.basis" company-mlton--base))
+(defconst company-mlton-basis-file--standard
+  (expand-file-name "mlton-default.basis" company-mlton--dir))
 
-(defvar-local company-mlton-basis--file company-mlton-basis--file-default)
+(defcustom company-mlton-basis-file company-mlton-basis-file--standard
+  "The basis file associated with the current buffer."
+  :group 'company-mlton
+  :type '(file)
+  :safe #'string-or-null-p)
+(make-variable-buffer-local 'company-mlton-basis-file)
 
 (defvar company-mlton-basis--cache-hash-table
   (make-hash-table :test 'equal :weakness 'value))
@@ -243,7 +248,7 @@ Otherwise, return 'nil."
 (defvar-local company-mlton-basis--cache nil)
 
 (defun company-mlton-basis--fetch-ids ()
-  (-when-let (file company-mlton-basis--file)
+  (-when-let (file company-mlton-basis-file)
     (let* ((kfile (expand-file-name file))
            (cache
             (if (and company-mlton-basis--cache
@@ -271,7 +276,7 @@ Otherwise, return 'nil."
 (defun company-mlton-basis-load ()
   (interactive)
   (let ((file (read-file-name "Basis file: " nil nil t nil nil)))
-    (setq-local company-mlton-basis--file file)
+    (setq-local company-mlton-basis-file file)
     (company-mlton-basis--fetch-ids)
     nil))
 
@@ -281,7 +286,7 @@ Otherwise, return 'nil."
   (cl-case command
     (interactive (company-begin-backend 'company-mlton-basis))
     (prefix (and (memq major-mode company-mlton-modes)
-                 company-mlton-basis--file
+                 company-mlton-basis-file
                  (not (company-in-string-or-comment))
                  (or (company-mlton--prefix) 'stop)))
     (candidates (all-completions arg (company-mlton-basis--fetch-ids)))
