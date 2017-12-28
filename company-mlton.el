@@ -37,7 +37,7 @@
 ;; company-mlton customization
 
 (defgroup company-mlton nil
-  "Completion backend for MLton/SML."
+  "Completion backend for MLton/Standard ML."
   :group 'company)
 
 (defcustom company-mlton-modes '(sml-mode)
@@ -47,6 +47,10 @@
 ;; company-mlton regexps
 
 (defun company-mlton--rev-rx (rx)
+  "Returns an `rx' sexp that accepts the language of reversed words
+accepted by the `rx' sexp RX.
+
+Only handles a small subset of `rx' sexp forms."
   (pcase rx
     ((pred stringp) rx)
     ((pred characterp) rx)
@@ -96,6 +100,7 @@
 (defconst company-mlton--sml-tyvars-re
   (rx-to-string company-mlton--sml-tyvars-rx))
 
+
 ;; company-mlton utils
 
 ;; Robustly match SML long identifier prefixes.
@@ -137,8 +142,10 @@
 ;; and compare the length of the longest match of
 ;; `prefix-sml-long-id-at-start-re`.
 (defun company-mlton--prefix ()
-  "If point is at the end of a prefix of an SML long identifier, return it.
-If point is in the middle of a prefix of an SML long identifier, return 'stop.
+  "If point is at the end of a prefix of an SML long identifier,
+return it.
+If point is in the middle of a prefix of an SML long identifier,
+return 'stop.
 Otherwise, return 'nil."
   (let ((rev-pre-line (reverse (buffer-substring (point-at-bol) (point)))))
     (when (string-match
@@ -153,23 +160,28 @@ Otherwise, return 'nil."
             prefix
           'stop)))))
 
+
 ;; company-mlton-keyword
 
 (defconst company-mlton-keyword--sml-keywords-core
   '("abstype" "and" "andalso" "as" "case" "datatype" "do" "else"
     "end" "exception" "fn" "fun" "handle" "if" "in" "infix"
     "infixr" "let" "local" "nonfix" "of" "op" "open" "orelse"
-    "raise" "rec" "then" "type" "val" "with" "withtype" "while"))
+    "raise" "rec" "then" "type" "val" "with" "withtype" "while")
+  "The list of Standard ML keywords for the core language.")
 (defconst company-mlton-keyword--sml-keywords-modules
   '("eqtype" "functor" "include" "sharing" "sig"
-    "signature" "struct" "structure" "where"))
+    "signature" "struct" "structure" "where")
+  "The list of Standard ML keywords for the modules language.")
 (defconst company-mlton-keyword--sml-keywords
   (sort (append company-mlton-keyword--sml-keywords-core
                 company-mlton-keyword--sml-keywords-modules)
-        'string<))
+        'string<)
+  "The list of Standard ML keywords.")
 
 ;;;###autoload
 (defun company-mlton-keyword (command &optional arg &rest ignored)
+  "`company-mode' completion backend for Standard ML keywords."
   (interactive (list 'interactive))
   (cl-case command
     (interactive (company-begin-backend 'company-mlton-keyword))
@@ -181,6 +193,7 @@ Otherwise, return 'nil."
     (sorted 't)
     ))
 
+
 ;; company-mlton-basis
 
 (defconst company-mlton-basis--entry-rx
@@ -190,20 +203,46 @@ Otherwise, return 'nil."
          (: (group-n 2 (| "con" "exn" "val" "signature" "structure" "functor"))
             " " (group-n 1 ,company-mlton--sml-long-id-rx)))
       (* not-newline) "\n"
-      (* " " (* not-newline) "\n")))
+      (* " " (* not-newline) "\n"))
+  "An `rx' sexp to match entries in a basis file.
+
+Group #1 matches the SML long identifier.
+Group #2 matches the SML keyword.")
 (defconst company-mlton-basis--entry-re
-  (rx-to-string company-mlton-basis--entry-rx))
+  (rx-to-string company-mlton-basis--entry-rx)
+  "A regexp to match entries in a basis file.
+
+Group #1 matches the SML long identifier.
+Group #2 matches the SML keyword.")
 (defconst company-mlton-basis--entry-def-rx
   `(: "(* @ "
       (group-n 1 (* (not (any " "))))
       " "
       (group-n 2 (+ digit)) "." (+ digit)
       (? (: "-" (+ digit) "." (+ digit)))
-      " *)"))
+      " *)")
+  "An `rx' sexp to match (non-bogus) definition locations in a basis file.
+
+Group #1 matches the file name.
+Group #2 matches the line number.")
 (defconst company-mlton-basis--entry-def-re
-  (rx-to-string company-mlton-basis--entry-def-rx))
+  (rx-to-string company-mlton-basis--entry-def-rx)
+  "A regexp to match (non-bogus) definition locations in a basis file.
+
+Group #1 matches the file name.
+Group #2 matches the line number.")
 
 (defun company-mlton-basis--load-ids-from-file (file)
+  "Load identifiers described by a basis file FILE.
+
+Returns a list of strings.  Each string corresponds to an
+identifier from one entry in the basis file FILE.  The annotation
+text property of the string corresponds to the identifier
+class (one of \"typ\", \"con\", \"exn\", \"val\", \"sig\",
+\"str\", or \"fct\").  The meta text property of string
+corresponds to the whole entry, excepting the definition
+location.  The location property of the string corresponds to the
+definition location of the identifier."
   (message "company-mlton loading file \"%s\"" file)
   (with-temp-buffer
     (insert-file-contents file)
@@ -233,7 +272,11 @@ Otherwise, return 'nil."
       ids)))
 
 (defconst company-mlton-basis-file--standard
-  (expand-file-name "mlton-default.basis" company-mlton--dir))
+  (expand-file-name "mlton-default.basis" company-mlton--dir)
+  "The standard value for the (buffer-local) variable `company-mlton-basis-file'.
+
+Corresponds to MLton's default environment (implicitly used when
+compiling a \".sml\" file).")
 
 (defcustom company-mlton-basis-file company-mlton-basis-file--standard
   "The basis file associated with the current buffer."
@@ -256,7 +299,7 @@ Otherwise, return 'nil."
                 company-mlton-basis--cache
               (or (gethash kfile company-mlton-basis--cache-hash-table)
                   (let ((cache (cons kfile nil)))
-                    (setq-local company-mlton-basis--cache cache)
+                    (setq company-mlton-basis--cache cache)
                     (puthash kfile cache company-mlton-basis--cache-hash-table)
                     cache)))))
       (or (cdr cache)
@@ -273,15 +316,20 @@ Otherwise, return 'nil."
                   (setcdr cache ids)
                   ids))))))))
 
-(defun company-mlton-basis-load ()
-  (interactive)
-  (let ((file (read-file-name "Basis file: " nil nil t nil nil)))
-    (setq-local company-mlton-basis-file file)
-    (company-mlton-basis--fetch-ids)
-    nil))
+(defun company-mlton-basis-load (file)
+  "Load a basis file FILE created by \"mlton\" using \"-show-basis <file>\"."
+  (interactive "fBasis file: ")
+  (setq company-mlton-basis-file file)
+  (company-mlton-basis--fetch-ids)
+  nil)
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
+  "`company-mode' completion backend for Standard ML identifiers.
+
+Candidate completion identifiers are loaded from a basis file
+created by \"mlton\" using \"-show-basis <file>\" and specified
+by the (buffer-local) variable `company-mlton-basis-file'."
   (interactive (list 'interactive))
   (cl-case command
     (interactive (company-begin-backend 'company-mlton-basis))
@@ -307,12 +355,21 @@ Otherwise, return 'nil."
                   file_line)))
     ))
 
+
 ;; company-mlton-init
 
 ;;;###autoload
 (defun company-mlton-init ()
+  "Init company-mlton backend.
+
+Makes variable `company-backends' buffer local, sets it to the
+group of `company-mlton-keyword' and `company-mlton-basis', and
+enables `company-mode'.
+
+This function is suitable for adding to `sml-mode-hook'."
   (interactive)
-  (set (make-local-variable 'company-backends) '((company-mlton-keyword company-mlton-basis)))
+  (set (make-local-variable 'company-backends)
+       '((company-mlton-keyword company-mlton-basis)))
   (company-mode t))
 
 (provide 'company-mlton)
