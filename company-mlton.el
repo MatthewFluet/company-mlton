@@ -335,19 +335,44 @@ necessary."
                    (cadddr cache)))))))
 
 (defun company-mlton-basis-load (file)
-  "Load a basis file FILE created by \"mlton\" using \"-show-basis <file>\"."
+  "Load a basis file FILE created by 'mlton' using '-show-basis <file>' or '(*#showBasis \"<file>\"*)'."
   (interactive "fBasis file: ")
   (setq company-mlton-basis-file file)
   (company-mlton-basis--fetch-ids)
   nil)
+
+(defconst company-mlton-basis--show-basis-directive-rx
+  `(: "(*#showBasis" (+ " ") "\"" (group-n 1 (* (not (any "\"")))) "\"" (* " ") "*)")
+  "An `rx' sexp to match '(*#showBasis \"<file>\"*)' directives.
+
+Group #1 matches the file name.")
+(defconst company-mlton-basis--show-basis-directive-re
+  (rx-to-string company-mlton-basis--show-basis-directive-rx)
+  "A regexp to match '(*#showBasis \"<file>\"*)' directives.
+
+Group #1 matches the file name.")
+
+(defun company-mlton-basis-autodetect ()
+  "Attempt to autodetect the basis file for use with the current buffer.
+
+Currently, searches the current buffer for
+'(*#showBasis \"<file>\"*)' directives and sets
+`company-mlton-basis-file'."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward company-mlton-basis--show-basis-directive-re nil t)
+      (setq company-mlton-basis-file (match-string-no-properties 1)))))
+
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
   "`company-mode' completion backend for Standard ML identifiers.
 
 Candidate completion identifiers are loaded from a basis file
-created by \"mlton\" using \"-show-basis <file>\" and specified
-by the (buffer-local) variable `company-mlton-basis-file'."
+created by 'mlton' using '-show-basis <file>' or
+'(*#showBasis \"<file>\"*)' and specified by the (buffer-local)
+variable `company-mlton-basis-file'."
   (interactive (list 'interactive))
   (cl-case command
     (interactive (company-begin-backend 'company-mlton-basis))
@@ -381,13 +406,14 @@ by the (buffer-local) variable `company-mlton-basis-file'."
   "Init company-mlton backend.
 
 Makes variable `company-backends' buffer local, sets it to the
-group of `company-mlton-keyword' and `company-mlton-basis', and
-enables `company-mode'.
+group of `company-mlton-keyword' and `company-mlton-basis', calls
+`company-mlton-basis-autodetect', and enables `company-mode'.
 
 This function is suitable for adding to `sml-mode-hook'."
   (interactive)
   (set (make-local-variable 'company-backends)
        '((company-mlton-keyword company-mlton-basis)))
+  (company-mlton-basis-autodetect)
   (company-mode t))
 
 (provide 'company-mlton)
