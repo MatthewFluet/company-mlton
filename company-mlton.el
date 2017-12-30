@@ -334,6 +334,7 @@ necessary."
                      (funcall load-ids t)
                    (cadddr cache)))))))
 
+;;;###autoload
 (defun company-mlton-basis-load (file)
   "Load a basis file FILE created by 'mlton' using '-show-basis <file>' or '(*#showBasis \"<file>\"*)'."
   (interactive "fBasis file: ")
@@ -352,6 +353,7 @@ Group #1 matches the file name.")
 
 Group #1 matches the file name.")
 
+;;;###autoload
 (defun company-mlton-basis-autodetect ()
   "Attempt to autodetect the basis file for use with the current buffer.
 
