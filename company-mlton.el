@@ -264,8 +264,7 @@ definition location of the identifier."
                              ("dat" "typ")
                              ("fun" "fct")
                              (ann ann)))
-               (meta (replace-regexp-in-string
-                      "[ \n]+\\'" ""
+               (meta (string-trim-right
                       (replace-regexp-in-string
                        "(\\* @.*\\*)" ""
                        entry)))
@@ -395,7 +394,7 @@ variable `company-mlton-basis-file'."
                                               (frame-total-lines))))))
                 (if (<= (length metas) max-lines)
                     meta
-                  (mapconcat #'identity (-take max-lines metas) "\n"))))))
+                  (string-join (-take max-lines metas) "\n"))))))
     (location (-when-let (file_line (get-text-property 0 'location arg))
                 (when (file-readable-p (car file_line))
                   file_line)))
