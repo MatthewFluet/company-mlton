@@ -27,8 +27,8 @@
 
 ;;; Code:
 
+(require 'pcase)
 (require 'company)
-(require 'cl-lib)
 (require 'dash)
 
 (defconst company-mlton--dir
@@ -190,15 +190,14 @@ Otherwise, return 'nil."
 (defun company-mlton-keyword (command &optional arg &rest ignored)
   "`company-mode' completion backend for Standard ML keywords."
   (interactive (list 'interactive))
-  (cl-case command
-    (interactive (company-begin-backend 'company-mlton-keyword))
-    (prefix (and (memq major-mode company-mlton-modes)
-                 (not (company-in-string-or-comment))
-                 (or (company-mlton--prefix) 'stop)))
-    (candidates (all-completions arg company-mlton-keyword--sml-keywords))
-    (annotation "kw")
-    (sorted 't)
-    ))
+  (pcase command
+    (`interactive (company-begin-backend 'company-mlton-keyword))
+    (`prefix (and (memq major-mode company-mlton-modes)
+                  (not (company-in-string-or-comment))
+                  (or (company-mlton--prefix) 'stop)))
+    (`candidates (all-completions arg company-mlton-keyword--sml-keywords))
+    (`annotation "kw")
+    (`sorted 't)))
 
 
 ;; company-mlton-basis
@@ -328,12 +327,12 @@ necessary."
                              kfile))
                   (setcdr cache (list 'loaded kfile-time ids))
                   ids)))))
-      (cl-case (cadr cache)
-        (not-loaded (funcall load-ids t))
-        (not-readable (funcall load-ids nil))
-        (loaded (if (time-less-p (caddr cache) kfile-time)
-                    (funcall load-ids t)
-                  (cadddr cache)))))))
+      (pcase (cadr cache)
+        (`not-loaded (funcall load-ids t))
+        (`not-readable (funcall load-ids nil))
+        (`loaded (if (time-less-p (caddr cache) kfile-time)
+                     (funcall load-ids t)
+                   (cadddr cache)))))))
 
 ;;;###autoload
 (defun company-mlton-basis-load (file)
@@ -376,29 +375,28 @@ created by 'mlton' using '-show-basis <file>' or
 '(*#showBasis \"<file>\"*)' and specified by the (buffer-local)
 variable `company-mlton-basis-file'."
   (interactive (list 'interactive))
-  (cl-case command
-    (interactive (company-begin-backend 'company-mlton-basis))
-    (prefix (and (memq major-mode company-mlton-modes)
-                 company-mlton-basis-file
-                 (not (company-in-string-or-comment))
-                 (or (company-mlton--prefix) 'stop)))
-    (candidates (all-completions arg (company-mlton-basis--fetch-ids)))
-    (annotation (get-text-property 0 'annotation arg))
-    (meta (let ((meta (get-text-property 0 'meta arg)))
-            (if company-echo-truncate-lines
-                (replace-regexp-in-string "[ \n]+" " " meta)
-              (let ((metas (split-string meta "\n"))
-                    (max-lines (if (integerp max-mini-window-height)
-                                   max-mini-window-height
-                                 (truncate (* max-mini-window-height
-                                              (frame-total-lines))))))
-                (if (<= (length metas) max-lines)
-                    meta
-                  (string-join (-take max-lines metas) "\n"))))))
-    (location (-when-let (file_line (get-text-property 0 'location arg))
-                (when (file-readable-p (car file_line))
-                  file_line)))
-    ))
+  (pcase command
+    (`interactive (company-begin-backend 'company-mlton-basis))
+    (`prefix (and (memq major-mode company-mlton-modes)
+                  company-mlton-basis-file
+                  (not (company-in-string-or-comment))
+                  (or (company-mlton--prefix) 'stop)))
+    (`candidates (all-completions arg (company-mlton-basis--fetch-ids)))
+    (`annotation (get-text-property 0 'annotation arg))
+    (`meta (let ((meta (get-text-property 0 'meta arg)))
+             (if company-echo-truncate-lines
+                 (replace-regexp-in-string "[ \n]+" " " meta)
+               (let ((metas (split-string meta "\n"))
+                     (max-lines (if (integerp max-mini-window-height)
+                                    max-mini-window-height
+                                  (truncate (* max-mini-window-height
+                                               (frame-total-lines))))))
+                 (if (<= (length metas) max-lines)
+                     meta
+                   (string-join (-take max-lines metas) "\n"))))))
+    (`location (-when-let (file_line (get-text-property 0 'location arg))
+                 (when (file-readable-p (car file_line))
+                   file_line)))))
 
 
 ;; company-mlton-init
