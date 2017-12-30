@@ -248,7 +248,9 @@ class (one of \"typ\", \"con\", \"exn\", \"val\", \"sig\",
 \"str\", or \"fct\").  The meta text property of string
 corresponds to the whole entry, excepting the definition
 location.  The location property of the string corresponds to the
-definition location of the identifier."
+definition location of the identifier.  The doc text property of
+the string corresponds to the whole-entry, including the
+definition location."
   (when company-mlton-verbose
     (message "company-mlton loading file \"%s\"" file))
   (with-temp-buffer
@@ -269,11 +271,13 @@ definition location of the identifier."
                        entry)))
                (location (when (string-match company-mlton-basis--entry-def-re entry)
                            (cons (match-string-no-properties 1 entry)
-                                 (string-to-number (match-string-no-properties 2 entry))))))
+                                 (string-to-number (match-string-no-properties 2 entry)))))
+               (doc entry))
           (push (propertize id
                             'annotation annotation
                             'meta meta
-                            'location location)
+                            'location location
+                            'doc doc)
                 ids)))
       ids)))
 
@@ -423,7 +427,9 @@ variable `company-mlton-basis-file'."
                    (string-join (-take max-lines metas) "\n"))))))
     (`location (-when-let (file_line (get-text-property 0 'location arg))
                  (when (file-readable-p (car file_line))
-                   file_line)))))
+                   file_line)))
+    (`doc-buffer (-when-let (doc (get-text-property 0 'doc arg))
+                   (company-doc-buffer doc)))))
 
 
 ;; company-mlton-init
