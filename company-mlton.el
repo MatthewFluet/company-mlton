@@ -152,15 +152,17 @@ return it.
 If point is in the middle of a prefix of an SML long identifier,
 return 'stop.
 Otherwise, return 'nil."
-  (let ((rev-pre-line (string-reverse (buffer-substring (point-at-bol) (point)))))
+  (let ((rev-pre-line (string-reverse
+                       (buffer-substring-no-properties (point-at-bol) (point)))))
     (when (string-match
            company-mlton--rev-prefix-sml-long-id-at-start-re
            rev-pre-line)
-      (let ((prefix (string-reverse (match-string 0 rev-pre-line))))
+      (let ((prefix (string-reverse
+                     (match-string-no-properties 0 rev-pre-line))))
         ;; match must succeed
         (string-match
          company-mlton--prefix-sml-long-id-at-start-re
-         (concat prefix (buffer-substring (point) (point-at-eol))))
+         (concat prefix (buffer-substring-no-properties (point) (point-at-eol))))
         (if (= (length prefix) (match-end 0))
             prefix
           'stop)))))
@@ -255,9 +257,9 @@ definition location of the identifier."
     (goto-char (point-min))
     (let ((ids nil))
       (while (re-search-forward company-mlton-basis--entry-re nil t)
-        (let* ((entry (match-string 0))
-               (id (match-string 1))
-               (kw (match-string 2))
+        (let* ((entry (match-string-no-properties 0))
+               (id (match-string-no-properties 1))
+               (kw (match-string-no-properties 2))
                (annotation (pcase (substring kw 0 3)
                              ("dat" "typ")
                              ("fun" "fct")
@@ -268,8 +270,8 @@ definition location of the identifier."
                        "(\\* @.*\\*)" ""
                        entry)))
                (location (when (string-match company-mlton-basis--entry-def-re entry)
-                           (cons (match-string 1 entry)
-                                 (string-to-number (match-string 2 entry))))))
+                           (cons (match-string-no-properties 1 entry)
+                                 (string-to-number (match-string-no-properties 2 entry))))))
           (push (propertize id
                             'annotation annotation
                             'meta meta
