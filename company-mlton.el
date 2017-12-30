@@ -152,11 +152,11 @@ return it.
 If point is in the middle of a prefix of an SML long identifier,
 return 'stop.
 Otherwise, return 'nil."
-  (let ((rev-pre-line (reverse (buffer-substring (point-at-bol) (point)))))
+  (let ((rev-pre-line (string-reverse (buffer-substring (point-at-bol) (point)))))
     (when (string-match
            company-mlton--rev-prefix-sml-long-id-at-start-re
            rev-pre-line)
-      (let ((prefix (reverse (match-string 0 rev-pre-line))))
+      (let ((prefix (string-reverse (match-string 0 rev-pre-line))))
         ;; match must succeed
         (string-match
          company-mlton--prefix-sml-long-id-at-start-re
@@ -327,12 +327,12 @@ necessary."
                              kfile))
                   (setcdr cache (list 'loaded kfile-time ids))
                   ids)))))
-      (pcase (cadr cache)
-        ('not-loaded (funcall load-ids t))
-        ('not-readable (funcall load-ids nil))
-        ('loaded (if (time-less-p (caddr cache) kfile-time)
-                     (funcall load-ids t)
-                   (cadddr cache)))))))
+      (cl-case (cadr cache)
+        (not-loaded (funcall load-ids t))
+        (not-readable (funcall load-ids nil))
+        (loaded (if (time-less-p (caddr cache) kfile-time)
+                    (funcall load-ids t)
+                  (cadddr cache)))))))
 
 ;;;###autoload
 (defun company-mlton-basis-load (file)
