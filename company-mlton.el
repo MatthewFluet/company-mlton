@@ -292,9 +292,36 @@ compiling a \".sml\" file).")
 (make-variable-buffer-local 'company-mlton-basis-file)
 
 (defvar company-mlton-basis--cache-hash-table
-  (make-hash-table :test 'equal :weakness 'value))
+  (make-hash-table :test 'equal :weakness 'value)
+  "A global value-weak hash-table for mapping basis files to ids.
 
-(defvar-local company-mlton-basis--cache nil)
+The hash-table maps (expanded) file names to caches of the
+following forms:
+  (FILE 'not-loaded)
+  (FILE 'not-readable)
+  (FILE 'loaded TIME IDS)
+where FILE is the expanded file name, 'not-loaded indicates that
+the FILE has never been loaded, 'not-readable indicates that the
+FILE was not readable at the last attempt to load it (and,
+therefore, subsequent not-readable error messages should be
+suppressed), 'loaded indicates that the FILE was successfully
+loaded, TIME is the file modification time when FILE was loaded,
+and IDS is the list of identifiers loaded from FILE.
+
+The hash-table is value-weak to allow caches (particularly
+(FILE 'loaded TIME IDS) caches) to be garbage collected when
+there are no buffers requiring that basis file.")
+
+(defvar-local company-mlton-basis--cache nil
+  "The cache associated with the current buffer.
+
+See `company-mlton-basis--cache-hash-table' for a description of
+cache forms.
+
+This buffer-local variable is a strong reference to the cache,
+maintaining it in the value-weak hash-table.  Moreover, when the
+cache corresponds to `company-mlton-basis-file', then a
+hash-table lookup is not required.")
 
 (defun company-mlton-basis--fetch-ids ()
   "Fetch identifiers from the basis file specified by
