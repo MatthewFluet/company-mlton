@@ -401,18 +401,24 @@ variable `company-mlton-basis-file'."
 
 ;; company-mlton-init
 
+(defconst company-mlton-grouped-backend
+  (list #'company-mlton-keyword #'company-mlton-basis)
+  "A grouped backed for `company-backends' consisting of
+`company-mlton-keyword' and `company-mlton-basis'.")
+
 ;;;###autoload
 (defun company-mlton-init ()
   "Init company-mlton backend.
 
-Makes variable `company-backends' buffer local, sets it to the
-group of `company-mlton-keyword' and `company-mlton-basis', calls
+Makes variable `company-backends' buffer local, pushes
+`company-mlton-grouped-backend' (consisting of
+`company-mlton-keyword' and `company-mlton-basis') to it, calls
 `company-mlton-basis-autodetect', and enables `company-mode'.
 
 This function is suitable for adding to `sml-mode-hook'."
   (interactive)
-  (set (make-local-variable 'company-backends)
-       '((company-mlton-keyword company-mlton-basis)))
+  (make-local-variable 'company-backends)
+  (push company-mlton-grouped-backend company-backends)
   (company-mlton-basis-autodetect)
   (company-mode t))
 
