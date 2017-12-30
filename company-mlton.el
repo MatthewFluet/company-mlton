@@ -6,7 +6,7 @@
 ;; URL: https://github.com/MatthewFluet/company-mlton
 ;; Version: 1.0
 ;; Keywords: company-mode mlton standard-ml
-;; Package-Requires:
+;; Package-Requires: ((emacs "24.4") (company "0.9.4") (dash "2.13.0"))
 
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the
