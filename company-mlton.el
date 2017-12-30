@@ -313,10 +313,10 @@ necessary."
                     cache))))
            (kfile-time (-if-let (attrs (file-attributes kfile)) (nth 5 attrs)))
            (load-ids
-            (lambda (message-unreadable)
+            (lambda (show-unreadable-message)
               (if (not (file-readable-p kfile))
                   (progn
-                    (when message-unreadable
+                    (when show-unreadable-message
                       (message "company-mlton could not read file \"%s\""
                                kfile))
                     (setcdr cache (list 'not-readable))
@@ -363,7 +363,6 @@ Currently, searches the current buffer for
     (goto-char (point-min))
     (while (re-search-forward company-mlton-basis--show-basis-directive-re nil t)
       (setq company-mlton-basis-file (match-string-no-properties 1)))))
-
 
 ;;;###autoload
 (defun company-mlton-basis (command &optional arg &rest ignored)
