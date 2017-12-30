@@ -63,7 +63,7 @@ Only handles a small subset of `rx' sexp forms."
     (`(: . ,rest) (cons `: (reverse (-map #'company-mlton--rev-rx rest))))
     (`(| . ,rest) (cons `| (-map #'company-mlton--rev-rx rest)))
     (`(* . ,rest) (cons `* (-map #'company-mlton--rev-rx rest)))
-    (`(+ . ,rest) (cons `* (-map #'company-mlton--rev-rx rest)))
+    (`(+ . ,rest) (cons `+ (-map #'company-mlton--rev-rx rest)))
     (`(? . ,rest) (cons `? (-map #'company-mlton--rev-rx rest)))))
 
 (defconst company-mlton--sml-alphanum-rx
