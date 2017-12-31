@@ -1,4 +1,4 @@
-;;; company-mlton.el --- company-mode backend for MLton/Standard ML  -*- lexical-binding: t -*-
+;;; company-mlton.el --- company-mode backend for MLton/Standard ML  -*- lexical-binding: t; coding: utf-8 -*-
 
 ;; Copyright (C) 2017  Matthew Fluet
 
