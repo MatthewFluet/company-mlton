@@ -23,7 +23,14 @@
 
 
 ;;; Commentary
-
+;;
+;; `company-mlton' is a `company-mode' backend for MLton/Standard ML.
+;; It provides completion for Standard ML keywords and for Standard ML
+;; (long) identifiers.  Candidate completion identifiers for the
+;; latter are loaded from a basis file created by 'mlton' using
+;; '-show-basis <file>' or '(*#showBasis "<file>"*)'.  `company-mlton'
+;; ships with a default basis file that corresponds to MLton's default
+;; environment (implicitly used when compiling a ".sml" file).
 
 ;;; Code:
 
