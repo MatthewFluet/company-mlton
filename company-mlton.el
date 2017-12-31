@@ -200,7 +200,7 @@ Otherwise, return 'nil."
   (interactive (list 'interactive))
   (pcase command
     (`interactive (company-begin-backend 'company-mlton-keyword))
-    (`prefix (and (memq major-mode company-mlton-modes)
+    (`prefix (and (-some #'derived-mode-p company-mlton-modes)
                   (not (company-in-string-or-comment))
                   (or (company-mlton--prefix) 'stop)))
     (`candidates (all-completions arg company-mlton-keyword--sml-keywords))
@@ -416,8 +416,7 @@ variable `company-mlton-basis-file'."
   (interactive (list 'interactive))
   (pcase command
     (`interactive (company-begin-backend 'company-mlton-basis))
-    (`prefix (and (memq major-mode company-mlton-modes)
-                  company-mlton-basis-file
+    (`prefix (and (-some #'derived-mode-p company-mlton-modes)
                   (not (company-in-string-or-comment))
                   (or (company-mlton--prefix) 'stop)))
     (`candidates (all-completions arg (company-mlton-basis--fetch-ids)))
