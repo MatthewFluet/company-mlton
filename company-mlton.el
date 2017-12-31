@@ -429,7 +429,11 @@ variable `company-mlton-basis-file'."
                  (when (file-readable-p (car file_line))
                    file_line)))
     (`doc-buffer (-when-let (doc (get-text-property 0 'doc arg))
-                   (company-doc-buffer doc)))))
+                   (let ((doc-buf (company-doc-buffer doc)))
+                     (when (featurep 'sml-mode)
+                       (with-current-buffer doc-buf
+                         (sml-mode)))
+                     doc-buf)))))
 
 
 ;; company-mlton-init
