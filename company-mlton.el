@@ -204,7 +204,7 @@ Otherwise, return 'nil."
                   (not (company-in-string-or-comment))
                   (or (company-mlton--prefix) 'stop)))
     (`candidates (all-completions arg company-mlton-keyword--sml-keywords))
-    (`annotation "kw")
+    (`annotation " kw")
     (`sorted 't)))
 
 
@@ -270,9 +270,9 @@ definition location."
                (id (match-string-no-properties 1))
                (kw (match-string-no-properties 2))
                (annotation (pcase (substring kw 0 3)
-                             ("dat" "typ")
-                             ("fun" "fct")
-                             (ann ann)))
+                             ("dat" " typ")
+                             ("fun" " fct")
+                             (ann (concat " " ann))))
                (meta (string-trim-right
                       (replace-regexp-in-string
                        "(\\* @.*\\*)" ""
