@@ -19,10 +19,10 @@ by `mlton` when compiling a `.sml` file).
 ### Dependencies
 
  * Emacs packages
-   * [`company-mode`](http://company-mode.github.io/) &gte; 0.9.4 (required)
-   * [`dash`](https://github.com/magnars/dash.el) &gte; 2.12.0 (required)
+   * [`company-mode`](http://company-mode.github.io/) &ge; 0.9.4 (required)
+   * [`dash`](https://github.com/magnars/dash.el) &ge; 2.12.0 (required)
    * [`sml-mode`](https://elpa.gnu.org/packages/sml-mode.html) (recommended)
- * [MLton](https://github.org/MLton/mlton) &gte; 20171229.155218-ga5d65b8
+ * [MLton](https://github.org/MLton/mlton) &ge; 20171229.155218-ga5d65b8 (recommended, to generate custom basis files)
 
 <!-- ### Install via [MELPA](https://melpa.org/) -->
 
