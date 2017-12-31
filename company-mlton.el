@@ -366,12 +366,12 @@ necessary."
                              kfile))
                   (setcdr cache (list 'loaded kfile-time ids))
                   ids)))))
-      (pcase (cadr cache)
+      (pcase (nth 1 cache)
         (`not-loaded (funcall load-ids t))
         (`not-readable (funcall load-ids nil))
-        (`loaded (if (time-less-p (caddr cache) kfile-time)
+        (`loaded (if (time-less-p (nth 2 cache) kfile-time)
                      (funcall load-ids t)
-                   (cadddr cache)))))))
+                   (nth 3 cache)))))))
 
 ;;;###autoload
 (defun company-mlton-basis-load (file)
