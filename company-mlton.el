@@ -34,9 +34,10 @@
 
 ;;; Code:
 
-(require 'pcase)
 (require 'company)
 (require 'dash)
+(require 'pcase)
+(require 'subr-x)
 
 (defconst company-mlton--dir
   (file-name-directory load-file-name))
