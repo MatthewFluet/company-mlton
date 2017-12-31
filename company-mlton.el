@@ -293,8 +293,8 @@ definition location."
   (expand-file-name "mlton-default.basis" company-mlton--dir)
   "The standard value for the (buffer-local) variable `company-mlton-basis-file'.
 
-Corresponds to MLton's default environment (implicitly used when
-compiling a \".sml\" file).")
+Corresponds to MLton's default environment (implicitly used by
+'mlton' when compiling a \".sml\" file).")
 
 (defcustom company-mlton-basis-file company-mlton-basis-file--standard
   "The basis file associated with the current buffer."
