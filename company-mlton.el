@@ -1,6 +1,6 @@
 ;;; company-mlton.el --- company-mode backend for MLton/Standard ML  -*- lexical-binding: t; coding: utf-8 -*-
 
-;; Copyright (C) 2017  Matthew Fluet
+;; Copyright (C) 2017-2018  Matthew Fluet
 
 ;; Author: Matthew Fluet <Matthew.Fluet@gmail.com>
 ;; URL: https://github.com/MatthewFluet/company-mlton
@@ -49,7 +49,7 @@
   :group 'company)
 
 (defcustom company-mlton-modes '(sml-mode)
-  "Major modes in which company-mlton may complete."
+  "List of major modes in which company-mlton may complete."
   :group 'company-mlton)
 
 (defcustom company-mlton-verbose t
@@ -452,7 +452,7 @@ variable `company-mlton-basis-file'."
 
 ;;;###autoload
 (defun company-mlton-init ()
-  "Init company-mlton backend.
+  "Initializes company-mlton backend.
 
 Makes variable `company-backends' buffer local, pushes
 `company-mlton-grouped-backend' (consisting of
