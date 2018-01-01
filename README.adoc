@@ -1,6 +1,7 @@
 = `company-mlton`
 Matthew Fluet <Matthew.Fluet@gmail.com>
-:ast: *
+:scom: (*
+:ecom: *)
 
 https://github.com/MatthewFluet/company-mlton/[`company-mlton`] is a
 http://company-mode.github.io/[`company-mode`] completion back-end for
@@ -8,7 +9,7 @@ http://mlton.org/[MLton]/Standard{nbsp}ML.  It provides completion for
 Standard{nbsp}ML keywords and for Standard{nbsp}ML (long) identifiers.
 Candidate completion identifiers for the latter are loaded from a
 basis file created by `mlton` using ``-show-basis{nbsp}__file__`` or
-``({ast}#showBasis{nbsp}"__file__"{ast})``.
+``{scom}#showBasis{nbsp}"__file__"{ecom}``.
 
 == Screenshot
 
@@ -47,3 +48,178 @@ Add to `.emacs` or `init.el`:
 ----
 
 == Usage
+
+Completion candidates for Standard{nbsp}ML (long) identifiers are
+loaded from a basis file created by `mlton` using
+``-show-basis{nbsp}__file__`` or
+``{scom}#showBasis{nbsp}"__file__"{ecom}``.
+
+=== Default Basis
+
+`company-mlton` ships with a default basis file that corresponds to
+MLton's default environment (implicitly used by `mlton` when compiling
+a `.sml` file).  It includes the
+http://sml-family.org/Basis/index.html[Standard ML Basis Library],
+`structure Unsafe: UNSAFE`, `structure SMLofNJ: SML_OF_NJ`, and
+`structure MLton: MLTON` (plus supporting signatures).  This default
+basis is automatically used for `sml-mode` buffers that do not set the
+buffer-local variable `company-mlton-basis-file`.  Thus, it provides
+useful completion for single-file `.sml` programs.
+
+=== Custom Basis Workflows
+
+For larger Standard{nbsp}ML programs, it can be more useful to load a
+custom basis file created by `mlton` using
+``-show-basis{nbsp}__file__`` or
+``{scom}#showBasis{nbsp}"__file__"{ecom}``.
+
+==== Using ``-show-basis{nbsp}__file__``
+
+In some projects, a common set of utility libraries are used by many
+source `.sml` files.  For example, consider a project described as
+follows:
+
+* `project.mlb`:
++
+----
+$(SML_LIB)/basis/basis.mlb
+$(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+$(SML_LIB)/smlnj-lib/Controls/controls-lib.mlb
+../lib/PrettyPrint/PrettyPrint.mlb
+../lib/ParserCombinators/ParserCombinators.mlb
+
+src1.sml
+src2.sml
+main.sml
+----
+
+Within `src1.sml`, `src2.sml`, and `main.sml`, it would be useful to
+complete with the common set of libraries.  To do so, extract the
+"imports" of `project.mlb` to `project-imports.mlb`:
+
+* `project-imports.mlb`:
++
+----
+$(SML_LIB)/basis/basis.mlb
+$(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+$(SML_LIB)/smlnj-lib/Controls/controls-lib.mlb
+../lib/PrettyPrint/PrettyPrint.mlb
+../lib/ParserCombinators/ParserCombinators.mlb
+----
+* `project.mlb`:
++
+----
+project-imports.mlb
+main.sml
+----
+
+Now, save the environment described by `project-imports.mlb`:
+----
+mlton -show-basis project-imports.basis -stop tc project-imports.mlb
+----
+
+Finally, arrange for the buffer-local variable
+`company-mlton-basis-file` to be set to `project-imports.basis` for
+each source `.sml` file.  This can be accomplished by any of the
+following:
+
+* Execute `M-x company-mlton-basis-load` after loading a source `.sml`
+  file and choose `project-imports.basis` at the prompt.
+* Add a file-local variables `-*-` line to each of the source `.sml`
+  files:
++
+----
+(* -*- company-mlton-basis-file: "project-imports.basis"; -*- *)
+----
++
+A file-local variables `-*-` line must be the first line of the file.
+* Add a file-local variables `Local Variables:` block to each of the
+  source `.sml` files:
++
+----
+(* Local Variables: *)
+(* company-mlton-basis-file: "project-imports.basis" *)
+(* End: *)
+----
++
+A file-local variables `Local Variables:` block is typically placed at
+the end of the file.
+* Add a `.dir-locals.el` file to the directory:
++
+----
+((sml-mode . ((company-mlton-basis-file . "project-imports.basis"))))
+----
+
+The advantage of the ``-show-basis{nbsp}__file__`` workflow is that
+the custom basis file need only be created once (or whenever the
+common set of libraries changes) and can be shared among many source
+`.sml` files.  The disadvantage of the ``-show-basis{nbsp}__file__``
+workflow is that the environment used for completion is not
+specialized to each source `.sml` file.
+
+==== Using ``{scom}#showBasis{nbsp}"__file__"{ecom}``
+
+More specialized completions for a particular source `.sml` file can
+be provided by using ``{scom}#showBasis{nbsp}"__file__"{ecom}``
+directives.
+
+A comment of the form ``{scom}#showBasis{nbsp}"__file__"{ecom}`` in a
+source `.sml` file is recognized by `mlton` as a directive to save the
+environment at that point to ``__file__``.  The ``__file__`` is
+interpreted relative to the source `.sml` file in which it appears.
+The comment is lexed as a distinct token and is parsed as a
+structure-level declaration.
+
+Via `company-mlton-init` added to `sml-mode-hook`, comments of the
+form ``{scom}#showBasis{nbsp}"__file__"{ecom}`` are recognized when a
+source `.sml` file is loaded and the buffer-local variable
+`company-mlton-basis-file` is set to ``__file__``.  Similarly,
+executing `M-x company-mlton-basis-autodetect` (or `M-x
+company-mlton-init`) will scan the current buffer for comments of the
+form ``{scom}#showBasis{nbsp}"__file__"{ecom}`` and set the
+buffer-local variable `company-mlton-basis-file` accordingly; this can
+be used if the ``{scom}#showBasis{nbsp}"__file__"{ecom}`` comment is
+added after the source `.sml` file is loaded.
+
+A ``{scom}#showBasis{nbsp}"__file__"{ecom}`` directive can be used to
+capture an environment that includes functor arguments, local
+structure aliases, and local structure declarations.  For example,
+consider writing a type-checker module as a functor, parameterized by
+an abstract-syntax-tree represenation and a core representation and
+defining an environment module by applying a functor:
+----
+functor TypeCheck
+   (S: sig
+          structure Ast: AST_IR
+          structure Core: CORE_IR
+       end):
+   sig
+      val typeCheck: Ast.Prog.t -> Core.Prog.t option
+   end =
+struct
+   open S
+
+   structure A = Ast
+   structure C = Core
+   structure E =
+      MkEnv (structure Dom = A.Var
+             structure Rng =
+                struct
+                   type t = C.Var.t * C.Type.t
+                end)
+
+   (*#showBasis "type-check.basis"*)
+
+   fun typeCheck p = raise Fail "typeCheck"
+
+end
+----
+Compile (or at least type check) the whole project (or at least the
+portion of the project that includes `type-check.fun`) as usual.  The
+environment saved to `type-check.basis` will include `structure A`,
+`structure C`, and `structure E`, in addition to all identifiers in
+scope at the start of the functor declaration.
+
+The advantage of the ``{scom}#showBasis{nbsp}"__file__"{ecom}``
+workflow is that the custom basis file can be specialized to each
+source `.sml` file.
