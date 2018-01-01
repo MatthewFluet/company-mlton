@@ -12,7 +12,8 @@ basis file created by `mlton` using ``-show-basis{nbsp}__file__`` or
 
 == Screenshot
 
-image::screenshot.png[`company-mlton` screenshot,align="center"]
+[.text-center]
+image::screenshot.png[`company-mlton` screenshot]
 
 == Dependencies
 
