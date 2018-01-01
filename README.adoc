@@ -222,4 +222,6 @@ scope at the start of the functor declaration.
 
 The advantage of the ``{scom}#showBasis{nbsp}"__file__"{ecom}``
 workflow is that the custom basis file can be specialized to each
-source `.sml` file.
+source `.sml` file.  It should also fit naturally into a workflow that
+frequently compiles the current work-in-progress source `.sml` file to
+check for type errors.
