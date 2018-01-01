@@ -1,0 +1,46 @@
+= `company-mlton`
+Matthew Fluet <Matthew.Fluet@gmail.com>
+:ast: *
+
+https://github.com/MatthewFluet/company-mlton/[`company-mlton`] is a
+http://company-mode.github.io/[`company-mode`] completion back-end for
+http://mlton.org/[MLton]/Standard{nbsp}ML.  It provides completion for
+Standard{nbsp}ML keywords and for Standard{nbsp}ML (long) identifiers.
+Candidate completion identifiers for the latter are loaded from a
+basis file created by `mlton` using ``-show-basis{nbsp}__file__`` or
+``({ast}#showBasis{nbsp}"__file__"{ast})``.  `company-mlton` ships
+with a default basis file that corresponds to MLton's default
+environment (implicitly used by `mlton` when compiling a `.sml` file).
+
+== Screenshot
+
+image::screenshot.png[`company-mlton` screenshot,align="center"]
+
+== Dependencies
+
+* Emacs packages
+ ** http://company-mode.github.io/[`company-mode`] &ge; 0.9.4 (required; install via http://elpa.gnu.org/[GNU Elpa] or https://melpa.org/[MELPA])
+ ** https://github.com/magnars/dash.el[`dash`] &ge; 2.12.0 (required; install via http://elpa.gnu.org/[GNU Elpa] or https://melpa.org/[MELPA])
+ ** https://elpa.gnu.org/packages/sml-mode.html[`sml-mode`] (recommended; install via http://elpa.gnu.org/[GNU Elpa])
+* https://github.org/MLton/mlton/[MLton] &ge; 20171229.155218-ga5d65b8 (recommended, to generate custom basis files)
+
+////
+== Install via [MELPA](https://melpa.org/)
+////
+
+== Install Package via Git
+
+Clone repository:
+----
+cd ~/.emacs.d
+git clone https://github.com/MatthewFluet/company-mlton
+----
+
+Add to `.emacs` or `init.el`:
+----
+(add-to-list 'load-path "~/.emacs.d/company-mlton")
+(require 'company-mlton)
+(add-hook 'sml-mode-hook #'company-mlton-init)
+----
+
+== Usage
