@@ -19,9 +19,9 @@ by `mlton` when compiling a `.sml` file).
 ### Dependencies
 
  * Emacs packages
-   * [`company-mode`](http://company-mode.github.io/) &ge; 0.9.4 (required)
-   * [`dash`](https://github.com/magnars/dash.el) &ge; 2.12.0 (required)
-   * [`sml-mode`](https://elpa.gnu.org/packages/sml-mode.html) (recommended)
+   * [`company-mode`](http://company-mode.github.io/) &ge; 0.9.4 (required; install via [GNU Elpa](http://elpa.gnu.org/) or [MELPA](https://melpa.org))
+   * [`dash`](https://github.com/magnars/dash.el) &ge; 2.12.0 (required; install via [GNU Elpa](http://elpa.gnu.org/) or [MELPA](https://melpa.org))
+   * [`sml-mode`](https://elpa.gnu.org/packages/sml-mode.html) (recommended; install via [GNU Elpa](http://elpa.gnu.org/))
  * [MLton](https://github.org/MLton/mlton) &ge; 20171229.155218-ga5d65b8 (recommended, to generate custom basis files)
 
 <!-- ### Install via [MELPA](https://melpa.org/) -->
@@ -34,7 +34,7 @@ cd ~/.emacs.d
 git clone https://github.com/MatthewFluet/company-mlton
 ```
 
-Add to `.emacs`:
+Add to `.emacs` or `init.el`:
 ``` emacs-lisp
 (add-to-list 'load-path "~/.emacs.d/company-mlton")
 (require 'company-mlton)
