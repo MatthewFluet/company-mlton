@@ -158,12 +158,12 @@ return it.
 If point is in the middle of a prefix of an SML long identifier,
 return 'stop.
 Otherwise, return 'nil."
-  (let ((rev-pre-line (string-reverse
+  (let ((rev-pre-line (reverse
                        (buffer-substring-no-properties (point-at-bol) (point)))))
     (when (string-match
            company-mlton--rev-prefix-sml-long-id-at-start-re
            rev-pre-line)
-      (let ((prefix (string-reverse
+      (let ((prefix (reverse
                      (match-string-no-properties 0 rev-pre-line))))
         ;; match must succeed
         (string-match
